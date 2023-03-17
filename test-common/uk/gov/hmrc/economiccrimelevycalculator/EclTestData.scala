@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.economiccrimelevycalculator.config
+package uk.gov.hmrc.economiccrimelevycalculator
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.economiccrimelevycalculator.controllers.actions.{AuthorisedAction, BaseAuthorisedAction}
+import org.scalacheck.Gen
 
-import java.time.{Clock, ZoneOffset}
+trait EclTestData {
 
-class Module extends AbstractModule {
+  def alphaNumericString: String = Gen.alphaNumStr.retryUntil(_.nonEmpty).sample.get
 
-  override def configure(): Unit = {
-    bind(classOf[AuthorisedAction]).to(classOf[BaseAuthorisedAction]).asEagerSingleton()
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone.withZone(ZoneOffset.UTC))
-  }
+  val testInternalId: String = alphaNumericString
+
 }

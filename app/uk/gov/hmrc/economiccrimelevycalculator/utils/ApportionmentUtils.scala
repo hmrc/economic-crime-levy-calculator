@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.economiccrimelevycalculator.config
+package uk.gov.hmrc.economiccrimelevycalculator.utils
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.economiccrimelevycalculator.controllers.actions.{AuthorisedAction, BaseAuthorisedAction}
+import scala.math.BigDecimal.RoundingMode.RoundingMode
 
-import java.time.{Clock, ZoneOffset}
+object ApportionmentUtils {
 
-class Module extends AbstractModule {
+  val yearInDays: Int = 365
 
-  override def configure(): Unit = {
-    bind(classOf[AuthorisedAction]).to(classOf[BaseAuthorisedAction]).asEagerSingleton()
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone.withZone(ZoneOffset.UTC))
-  }
+  def apportionBasedOnDays(amount: BigDecimal, days: Int, scale: Int, roundingMode: RoundingMode): BigDecimal =
+    (amount * (BigDecimal(days) / yearInDays)).setScale(scale, roundingMode)
+
 }
