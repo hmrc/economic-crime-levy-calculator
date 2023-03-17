@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.economiccrimelevycalculator.config
+package uk.gov.hmrc.economiccrimelevycalculator.models
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.economiccrimelevycalculator.controllers.actions.{AuthorisedAction, BaseAuthorisedAction}
+import play.api.libs.json.{Json, OFormat}
 
-import java.time.{Clock, ZoneOffset}
+final case class CalculateLiabilityRequest(amlRegulatedActivityLength: Int, relevantApLength: Int, ukRevenue: Long)
 
-class Module extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[AuthorisedAction]).to(classOf[BaseAuthorisedAction]).asEagerSingleton()
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone.withZone(ZoneOffset.UTC))
-  }
+object CalculateLiabilityRequest {
+  implicit val format: OFormat[CalculateLiabilityRequest] = Json.format[CalculateLiabilityRequest]
 }
