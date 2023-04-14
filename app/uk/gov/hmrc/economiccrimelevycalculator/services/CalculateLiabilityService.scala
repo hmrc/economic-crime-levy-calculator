@@ -18,7 +18,7 @@ package uk.gov.hmrc.economiccrimelevycalculator.services
 
 import uk.gov.hmrc.economiccrimelevycalculator.config.AppConfig
 import uk.gov.hmrc.economiccrimelevycalculator.models.Band._
-import uk.gov.hmrc.economiccrimelevycalculator.models.{Band, Bands, CalculateLiabilityRequest, CalculatedLiability}
+import uk.gov.hmrc.economiccrimelevycalculator.models.{Band, Bands, CalculateLiabilityRequest, CalculatedLiability, EclAmount}
 import uk.gov.hmrc.economiccrimelevycalculator.utils.ApportionmentUtils
 
 import javax.inject.Inject
@@ -26,12 +26,14 @@ import scala.math.BigDecimal.RoundingMode
 
 class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
 
-  private def calculateBand(relevantApLength: Int, ukRevenue: Long): (Bands, Band) = {
-    val smallBand     = appConfig.defaultBands.small.apportion(relevantApLength)
-    val mediumBand    = appConfig.defaultBands.medium.apportion(relevantApLength)
-    val largeBand     = appConfig.defaultBands.large.apportion(relevantApLength)
+  private def calculateBand(relevantApLength: Int, ukRevenue: Long, amlRegulatedActivityLength: Int): (Bands, Band) = {
+    val smallBand     = appConfig.defaultBands.small.apportion(relevantApLength, amlRegulatedActivityLength)
+    val mediumBand    = appConfig.defaultBands.medium.apportion(relevantApLength, amlRegulatedActivityLength)
+    val largeBand     = appConfig.defaultBands.large.apportion(relevantApLength, amlRegulatedActivityLength)
     val veryLargeBand =
-      appConfig.defaultBands.veryLarge.apportion(relevantApLength).copy(to = appConfig.defaultBands.veryLarge.to)
+      appConfig.defaultBands.veryLarge
+        .apportion(relevantApLength, amlRegulatedActivityLength)
+        .copy(to = appConfig.defaultBands.veryLarge.to)
 
     val bands: Bands = Bands(
       smallBand,
@@ -51,8 +53,8 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
     (bands, band)
   }
 
-  private def calculateAmountDue(band: Band, amlRegulatedActivityLength: Int): BigDecimal = {
-    def apportion(amount: BigDecimal): BigDecimal =
+  private def calculateAmountDue(band: Band, amlRegulatedActivityLength: Int): EclAmount = {
+    def apportion(amount: BigDecimal): EclAmount =
       ApportionmentUtils.apportionBasedOnDays(
         amount = amount,
         days = amlRegulatedActivityLength,
@@ -69,7 +71,11 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
   }
 
   def calculateLiability(calculateLiabilityRequest: CalculateLiabilityRequest): CalculatedLiability = {
-    val (bands, band) = calculateBand(calculateLiabilityRequest.relevantApLength, calculateLiabilityRequest.ukRevenue)
+    val (bands, band) = calculateBand(
+      calculateLiabilityRequest.relevantApLength,
+      calculateLiabilityRequest.ukRevenue,
+      calculateLiabilityRequest.amlRegulatedActivityLength
+    )
 
     val amountDue = calculateAmountDue(band, calculateLiabilityRequest.amlRegulatedActivityLength)
 

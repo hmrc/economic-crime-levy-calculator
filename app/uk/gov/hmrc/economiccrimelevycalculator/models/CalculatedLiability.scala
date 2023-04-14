@@ -46,18 +46,36 @@ object Band {
   }
 }
 
-final case class BandRange(from: Long, to: Long) {
-  def apportion(relevantApLength: Int): BandRange = {
-    val a: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
+final case class EclAmount(amount: BigDecimal, apportioned: Boolean = false)
+
+object EclAmount {
+  implicit val format: OFormat[EclAmount] = Json.format[EclAmount]
+}
+
+final case class BandRange(from: Long, to: Long, amount: EclAmount, apportioned: Boolean = false) {
+  def apportion(relevantApLength: Int, amlRegulatedActivityLength: Int): BandRange = {
+    val apportionBandRange: BigDecimal => EclAmount = ApportionmentUtils.apportionBasedOnDays(
       _,
       days = relevantApLength,
       scale = 0,
       roundingMode = RoundingMode.UP
     )
 
+    val apportionBandAmount: BigDecimal => EclAmount = ApportionmentUtils.apportionBasedOnDays(
+      _,
+      days = amlRegulatedActivityLength,
+      scale = 2,
+      roundingMode = RoundingMode.DOWN
+    )
+
+    val calculatedFrom = apportionBandRange(from)
+    val calculatedTo   = apportionBandRange(to)
+
     BandRange(
-      from = a(from).longValue,
-      to = a(to).longValue
+      from = calculatedFrom.amount.longValue,
+      to = calculatedTo.amount.longValue,
+      amount = apportionBandAmount(amount.amount),
+      apportioned = calculatedFrom.apportioned | calculatedTo.apportioned
     )
   }
 }
@@ -72,7 +90,7 @@ object Bands {
   implicit val format: OFormat[Bands] = Json.format[Bands]
 }
 
-final case class CalculatedLiability(amountDue: BigDecimal, bands: Bands, calculatedBand: Band)
+final case class CalculatedLiability(amountDue: EclAmount, bands: Bands, calculatedBand: Band)
 
 object CalculatedLiability {
   implicit val format: OFormat[CalculatedLiability] = Json.format[CalculatedLiability]

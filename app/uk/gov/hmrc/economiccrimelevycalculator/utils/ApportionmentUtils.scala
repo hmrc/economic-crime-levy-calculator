@@ -16,13 +16,18 @@
 
 package uk.gov.hmrc.economiccrimelevycalculator.utils
 
+import uk.gov.hmrc.economiccrimelevycalculator.models.EclAmount
+
 import scala.math.BigDecimal.RoundingMode.RoundingMode
 
 object ApportionmentUtils {
 
   val yearInDays: Int = 365
 
-  def apportionBasedOnDays(amount: BigDecimal, days: Int, scale: Int, roundingMode: RoundingMode): BigDecimal =
-    (amount * (BigDecimal(days) / yearInDays)).setScale(scale, roundingMode)
+  def apportionBasedOnDays(amount: BigDecimal, days: Int, scale: Int, roundingMode: RoundingMode): EclAmount =
+    EclAmount(
+      amount = (amount * (BigDecimal(days) / yearInDays)).setScale(scale, roundingMode),
+      apportioned = days != yearInDays
+    )
 
 }
