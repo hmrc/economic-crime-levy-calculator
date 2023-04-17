@@ -39,7 +39,8 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
       smallBand,
       mediumBand,
       largeBand,
-      veryLargeBand
+      veryLargeBand,
+      apportioned = smallBand.apportioned | mediumBand.apportioned | largeBand.apportioned | veryLargeBand.apportioned
     )
 
     val band = ukRevenue match {

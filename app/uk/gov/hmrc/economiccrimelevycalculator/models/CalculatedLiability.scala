@@ -61,12 +61,13 @@ final case class BandRange(from: Long, to: Long, amount: EclAmount, apportioned:
       roundingMode = RoundingMode.UP
     )
 
-    val apportionBandAmount: BigDecimal => EclAmount = ApportionmentUtils.apportionBasedOnDays(
-      _,
-      days = amlRegulatedActivityLength,
-      scale = 2,
-      roundingMode = RoundingMode.DOWN
-    )
+    val apportionBandAmount: EclAmount => EclAmount = eclAmount =>
+      ApportionmentUtils.apportionBasedOnDays(
+        eclAmount.amount,
+        days = amlRegulatedActivityLength,
+        scale = 2,
+        roundingMode = RoundingMode.DOWN
+      )
 
     val calculatedFrom = apportionBandRange(from)
     val calculatedTo   = apportionBandRange(to)
@@ -74,7 +75,7 @@ final case class BandRange(from: Long, to: Long, amount: EclAmount, apportioned:
     BandRange(
       from = calculatedFrom.amount.longValue,
       to = calculatedTo.amount.longValue,
-      amount = apportionBandAmount(amount.amount),
+      amount = apportionBandAmount(amount),
       apportioned = calculatedFrom.apportioned | calculatedTo.apportioned
     )
   }
@@ -84,7 +85,13 @@ object BandRange {
   implicit val format: OFormat[BandRange] = Json.format[BandRange]
 }
 
-final case class Bands(small: BandRange, medium: BandRange, large: BandRange, veryLarge: BandRange)
+final case class Bands(
+  small: BandRange,
+  medium: BandRange,
+  large: BandRange,
+  veryLarge: BandRange,
+  apportioned: Boolean = false
+)
 
 object Bands {
   implicit val format: OFormat[Bands] = Json.format[Bands]
