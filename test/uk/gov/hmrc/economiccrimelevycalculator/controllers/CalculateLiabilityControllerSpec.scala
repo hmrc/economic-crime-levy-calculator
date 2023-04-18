@@ -21,7 +21,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import uk.gov.hmrc.economiccrimelevycalculator.base.SpecBase
-import uk.gov.hmrc.economiccrimelevycalculator.models.{CalculateLiabilityRequest, CalculatedLiability}
+import uk.gov.hmrc.economiccrimelevycalculator.models.{CalculateLiabilityRequest, CalculatedLiability, EclAmount}
 import uk.gov.hmrc.economiccrimelevycalculator.services.CalculateLiabilityService
 import uk.gov.hmrc.economiccrimelevycalculator.generators.CachedArbitraries._
 
@@ -52,7 +52,7 @@ class CalculateLiabilityControllerSpec extends SpecBase {
         calculatedLiability: CalculatedLiability,
         amountDue: BigDecimal
       ) =>
-        val updatedWithValidAmountDue = calculatedLiability.copy(amountDue = amountDue)
+        val updatedWithValidAmountDue = calculatedLiability.copy(amountDue = EclAmount(amount = amountDue))
 
         when(mockCalculateLiabilityService.calculateLiability(any())).thenReturn(updatedWithValidAmountDue)
 

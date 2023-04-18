@@ -19,10 +19,8 @@ package uk.gov.hmrc.economiccrimelevycalculator.services
 import uk.gov.hmrc.economiccrimelevycalculator.config.AppConfig
 import uk.gov.hmrc.economiccrimelevycalculator.models.Band._
 import uk.gov.hmrc.economiccrimelevycalculator.models.{Band, Bands, CalculateLiabilityRequest, CalculatedLiability, EclAmount}
-import uk.gov.hmrc.economiccrimelevycalculator.utils.ApportionmentUtils
 
 import javax.inject.Inject
-import scala.math.BigDecimal.RoundingMode
 
 class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
 
@@ -40,7 +38,11 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
       mediumBand,
       largeBand,
       veryLargeBand,
-      apportioned = smallBand.apportioned | mediumBand.apportioned | largeBand.apportioned | veryLargeBand.apportioned
+      apportioned = smallBand.apportioned(appConfig.defaultBands.small) | mediumBand.apportioned(
+        appConfig.defaultBands.medium
+      ) | largeBand.apportioned(appConfig.defaultBands.large) | veryLargeBand.apportioned(
+        appConfig.defaultBands.veryLarge
+      )
     )
 
     val band = ukRevenue match {
@@ -54,22 +56,13 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
     (bands, band)
   }
 
-  private def calculateAmountDue(band: Band, amlRegulatedActivityLength: Int): EclAmount = {
-    def apportion(amount: BigDecimal): EclAmount =
-      ApportionmentUtils.apportionBasedOnDays(
-        amount = amount,
-        days = amlRegulatedActivityLength,
-        scale = 2,
-        roundingMode = RoundingMode.DOWN
-      )
-
+  private def determineAmountDue(band: Band, bands: Bands): EclAmount =
     band match {
-      case Small     => apportion(appConfig.defaultSmallAmount)
-      case Medium    => apportion(appConfig.defaultMediumAmount)
-      case Large     => apportion(appConfig.defaultLargeAmount)
-      case VeryLarge => apportion(appConfig.defaultVeryLargeAmount)
+      case Small     => EclAmount(bands.small.amount, bands.small.amount != appConfig.defaultSmallAmount)
+      case Medium    => EclAmount(bands.medium.amount, bands.medium.amount != appConfig.defaultMediumAmount)
+      case Large     => EclAmount(bands.large.amount, bands.large.amount != appConfig.defaultLargeAmount)
+      case VeryLarge => EclAmount(bands.veryLarge.amount, bands.veryLarge.amount != appConfig.defaultVeryLargeAmount)
     }
-  }
 
   def calculateLiability(calculateLiabilityRequest: CalculateLiabilityRequest): CalculatedLiability = {
     val (bands, band) = calculateBand(
@@ -78,7 +71,7 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
       calculateLiabilityRequest.amlRegulatedActivityLength
     )
 
-    val amountDue = calculateAmountDue(band, calculateLiabilityRequest.amlRegulatedActivityLength)
+    val amountDue = determineAmountDue(band, bands)
 
     CalculatedLiability(amountDue, bands, band)
   }

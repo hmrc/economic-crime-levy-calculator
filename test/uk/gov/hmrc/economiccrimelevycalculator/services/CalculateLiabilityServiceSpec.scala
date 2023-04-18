@@ -29,12 +29,25 @@ class CalculateLiabilityServiceSpec extends SpecBase {
     expectedSmallTo: Long,
     expectedMediumTo: Long,
     expectedLargeTo: Long,
+    expectedMediumAmount: BigDecimal,
+    expectedLargeAmount: BigDecimal,
+    expectedVeryLargeAmount: BigDecimal,
     generatedRevenue: Long,
-    expectedBand: Band
+    expectedBand: Band,
+    apportioned: Boolean
   )
 
   object ExpectedBands {
-    def apply(smallTo: Long, mediumTo: Long, largeTo: Long, band: Band)(implicit
+    def apply(
+      smallTo: Long,
+      mediumTo: Long,
+      largeTo: Long,
+      expectedMediumAmount: BigDecimal,
+      expectedLargeAmount: BigDecimal,
+      expectedVeryLargeAmount: BigDecimal,
+      band: Band,
+      apportioned: Boolean = false
+    )(implicit
       appConfig: AppConfig
     ): ExpectedBands = {
       val revenue = band match {
@@ -44,7 +57,17 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         case VeryLarge => Gen.chooseNum[Long](largeTo, appConfig.defaultBands.veryLarge.to).sample.get
       }
 
-      ExpectedBands(smallTo, mediumTo, largeTo, revenue, band)
+      ExpectedBands(
+        smallTo,
+        mediumTo,
+        largeTo,
+        expectedMediumAmount,
+        expectedLargeAmount,
+        expectedVeryLargeAmount,
+        revenue,
+        band,
+        apportioned
+      )
     }
   }
 
@@ -69,29 +92,130 @@ class CalculateLiabilityServiceSpec extends SpecBase {
           "expectedBands",
           "expectedAmountDue"
         ),
-        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, Small), sAmount),
-        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, Medium), mAmount),
-        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, Large), lAmount),
-        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, VeryLarge), vlAmount),
-        (245, yearInDays, ExpectedBands(6846576L, 24164384L, 671232877L, Small), sAmount),
-        (182, yearInDays, ExpectedBands(5086028L, 17950685L, 498630137L, Medium), mAmount),
-        (73, yearInDays, ExpectedBands(2040000L, 7200000L, 200000000L, Large), lAmount),
-        (450, yearInDays, ExpectedBands(12575343L, 44383562L, 1232876713L, VeryLarge), vlAmount),
-        (yearInDays, 120, ExpectedBands(sTo, mTo, lTo, Small), sAmount),
-        (yearInDays, 60, ExpectedBands(sTo, mTo, lTo, Medium), BigDecimal(1643.83)),
-        (yearInDays, 204, ExpectedBands(sTo, mTo, lTo, Large), BigDecimal(20120.54)),
-        (yearInDays, 330, ExpectedBands(sTo, mTo, lTo, VeryLarge), BigDecimal(226027.39)),
-        (314, 92, ExpectedBands(8774795L, 30969864L, 860273973L, Small), sAmount),
-        (113, 198, ExpectedBands(3157809L, 11145206L, 309589042L, Medium), BigDecimal(5424.65)),
-        (284, 300, ExpectedBands(7936439L, 28010959L, 778082192L, Large), BigDecimal(29589.04)),
-        (91, 256, ExpectedBands(2543014L, 8975343L, 249315069L, VeryLarge), BigDecimal(175342.46))
+        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, mAmount, lAmount, vlAmount, Small), EclAmount(sAmount)),
+        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, mAmount, lAmount, vlAmount, Medium), EclAmount(mAmount)),
+        (yearInDays, yearInDays, ExpectedBands(sTo, mTo, lTo, mAmount, lAmount, vlAmount, Large), EclAmount(lAmount)),
+        (
+          yearInDays,
+          yearInDays,
+          ExpectedBands(sTo, mTo, lTo, mAmount, lAmount, vlAmount, VeryLarge),
+          EclAmount(vlAmount)
+        ),
+        (
+          245,
+          yearInDays,
+          ExpectedBands(6846576L, 24164384L, 671232877L, mAmount, lAmount, vlAmount, Small, apportioned = true),
+          EclAmount(sAmount)
+        ),
+        (
+          182,
+          yearInDays,
+          ExpectedBands(5086028L, 17950685L, 498630137L, mAmount, lAmount, vlAmount, Medium, apportioned = true),
+          EclAmount(mAmount)
+        ),
+        (
+          73,
+          yearInDays,
+          ExpectedBands(2040000L, 7200000L, 200000000L, mAmount, lAmount, vlAmount, Large, apportioned = true),
+          EclAmount(lAmount)
+        ),
+        (
+          450,
+          yearInDays,
+          ExpectedBands(12575343L, 44383562L, 1232876713L, mAmount, lAmount, vlAmount, VeryLarge, apportioned = true),
+          EclAmount(vlAmount)
+        ),
+        (
+          yearInDays,
+          120,
+          ExpectedBands(sTo, mTo, lTo, BigDecimal(3287.67), BigDecimal(11835.61), BigDecimal(82191.78), Small),
+          EclAmount(sAmount)
+        ),
+        (
+          yearInDays,
+          60,
+          ExpectedBands(sTo, mTo, lTo, BigDecimal(1643.83), BigDecimal(5917.80), BigDecimal(41095.89), Medium),
+          EclAmount(BigDecimal(1643.83), apportioned = true)
+        ),
+        (
+          yearInDays,
+          204,
+          ExpectedBands(sTo, mTo, lTo, BigDecimal(5589.04), BigDecimal(20120.54), BigDecimal(139726.02), Large),
+          EclAmount(BigDecimal(20120.54), apportioned = true)
+        ),
+        (
+          yearInDays,
+          330,
+          ExpectedBands(sTo, mTo, lTo, BigDecimal(9041.09), BigDecimal(32547.94), BigDecimal(226027.39), VeryLarge),
+          EclAmount(BigDecimal(226027.39), apportioned = true)
+        ),
+        (
+          314,
+          92,
+          ExpectedBands(
+            8774795L,
+            30969864L,
+            860273973L,
+            BigDecimal(2520.54),
+            BigDecimal(9073.97),
+            BigDecimal(63013.69),
+            Small,
+            apportioned = true
+          ),
+          EclAmount(sAmount)
+        ),
+        (
+          113,
+          198,
+          ExpectedBands(
+            3157809L,
+            11145206L,
+            309589042L,
+            BigDecimal(5424.65),
+            BigDecimal(19528.76),
+            BigDecimal(135616.43),
+            Medium,
+            apportioned = true
+          ),
+          EclAmount(BigDecimal(5424.65), apportioned = true)
+        ),
+        (
+          284,
+          300,
+          ExpectedBands(
+            7936439L,
+            28010959L,
+            778082192L,
+            BigDecimal(8219.17),
+            BigDecimal(29589.04),
+            BigDecimal(205479.45),
+            Large,
+            apportioned = true
+          ),
+          EclAmount(BigDecimal(29589.04), apportioned = true)
+        ),
+        (
+          91,
+          256,
+          ExpectedBands(
+            2543014L,
+            8975343L,
+            249315069L,
+            BigDecimal(7013.69),
+            BigDecimal(25249.31),
+            BigDecimal(175342.46),
+            VeryLarge,
+            apportioned = true
+          ),
+          EclAmount(BigDecimal(175342.46), apportioned = true)
+        )
       )
     ) {
       (
         relevantApLength: Int,
         amlRegulatedActivityLength: Int,
         expectedBands: ExpectedBands,
-        expectedAmountDue: BigDecimal
+        expectedAmountDue: EclAmount
       ) =>
         val result = service.calculateLiability(
           CalculateLiabilityRequest(
@@ -102,13 +226,29 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         )
 
         val expectedSmallBand: BandRange     =
-          BandRange(from = appConfig.defaultBands.small.from, to = expectedBands.expectedSmallTo)
+          BandRange(
+            from = appConfig.defaultBands.small.from,
+            to = expectedBands.expectedSmallTo,
+            amount = sAmount
+          )
         val expectedMediumBand: BandRange    =
-          BandRange(from = expectedBands.expectedSmallTo, to = expectedBands.expectedMediumTo)
+          BandRange(
+            from = expectedBands.expectedSmallTo,
+            to = expectedBands.expectedMediumTo,
+            amount = expectedBands.expectedMediumAmount
+          )
         val expectedLargeBand: BandRange     =
-          BandRange(from = expectedBands.expectedMediumTo, to = expectedBands.expectedLargeTo)
+          BandRange(
+            from = expectedBands.expectedMediumTo,
+            to = expectedBands.expectedLargeTo,
+            amount = expectedBands.expectedLargeAmount
+          )
         val expectedVeryLargeBand: BandRange =
-          BandRange(from = expectedBands.expectedLargeTo, to = appConfig.defaultBands.veryLarge.to)
+          BandRange(
+            from = expectedBands.expectedLargeTo,
+            to = appConfig.defaultBands.veryLarge.to,
+            amount = expectedBands.expectedVeryLargeAmount
+          )
 
         result shouldBe CalculatedLiability(
           amountDue = expectedAmountDue,
@@ -116,7 +256,8 @@ class CalculateLiabilityServiceSpec extends SpecBase {
             small = expectedSmallBand,
             medium = expectedMediumBand,
             large = expectedLargeBand,
-            veryLarge = expectedVeryLargeBand
+            veryLarge = expectedVeryLargeBand,
+            apportioned = expectedBands.apportioned
           ),
           calculatedBand = expectedBands.expectedBand
         )

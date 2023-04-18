@@ -52,33 +52,30 @@ object EclAmount {
   implicit val format: OFormat[EclAmount] = Json.format[EclAmount]
 }
 
-final case class BandRange(from: Long, to: Long, amount: EclAmount, apportioned: Boolean = false) {
+final case class BandRange(from: Long, to: Long, amount: BigDecimal) {
   def apportion(relevantApLength: Int, amlRegulatedActivityLength: Int): BandRange = {
-    val apportionBandRange: BigDecimal => EclAmount = ApportionmentUtils.apportionBasedOnDays(
+    val apportionBandRange: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
       _,
       days = relevantApLength,
       scale = 0,
       roundingMode = RoundingMode.UP
     )
 
-    val apportionBandAmount: EclAmount => EclAmount = eclAmount =>
-      ApportionmentUtils.apportionBasedOnDays(
-        eclAmount.amount,
-        days = amlRegulatedActivityLength,
-        scale = 2,
-        roundingMode = RoundingMode.DOWN
-      )
-
-    val calculatedFrom = apportionBandRange(from)
-    val calculatedTo   = apportionBandRange(to)
+    val apportionBandAmount: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
+      _,
+      days = amlRegulatedActivityLength,
+      scale = 2,
+      roundingMode = RoundingMode.DOWN
+    )
 
     BandRange(
-      from = calculatedFrom.amount.longValue,
-      to = calculatedTo.amount.longValue,
-      amount = apportionBandAmount(amount),
-      apportioned = calculatedFrom.apportioned | calculatedTo.apportioned
+      from = apportionBandRange(from).longValue,
+      to = apportionBandRange(to).longValue,
+      amount = apportionBandAmount(amount)
     )
   }
+
+  def apportioned(defaultBandRange: BandRange): Boolean = from != defaultBandRange.from | to != defaultBandRange.to
 }
 
 object BandRange {

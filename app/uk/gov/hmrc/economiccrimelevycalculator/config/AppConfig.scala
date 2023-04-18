@@ -17,13 +17,12 @@
 package uk.gov.hmrc.economiccrimelevycalculator.config
 
 import play.api.Configuration
-import uk.gov.hmrc.economiccrimelevycalculator.models.{BandRange, Bands, EclAmount}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.economiccrimelevycalculator.models.{BandRange, Bands}
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (configuration: Configuration, servicesConfig: ServicesConfig) {
+class AppConfig @Inject() (configuration: Configuration) {
 
   val appName: String = configuration.get[String]("appName")
 
@@ -36,7 +35,7 @@ class AppConfig @Inject() (configuration: Configuration, servicesConfig: Service
     BandRange(
       from = configuration.get[Long](s"bands.$size.from"),
       to = configuration.get[Long](s"bands.$size.to"),
-      amount = EclAmount(amount = configuration.get[Long](s"bands.$size.amount"))
+      amount = configuration.get[Long](s"bands.$size.amount")
     )
 
   val defaultBands: Bands = {
@@ -46,7 +45,7 @@ class AppConfig @Inject() (configuration: Configuration, servicesConfig: Service
     val veryLarge = BandRange(
       from = configuration.get[Long]("bands.veryLarge.from"),
       to = Long.MaxValue,
-      amount = EclAmount(amount = configuration.get[Long]("bands.veryLarge.amount"))
+      amount = configuration.get[Long]("bands.veryLarge.amount")
     )
 
     Bands(
