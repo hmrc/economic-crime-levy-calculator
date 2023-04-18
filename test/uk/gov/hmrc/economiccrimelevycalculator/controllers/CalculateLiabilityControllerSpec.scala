@@ -17,7 +17,6 @@
 package uk.gov.hmrc.economiccrimelevycalculator.controllers
 
 import org.mockito.ArgumentMatchers.any
-import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import uk.gov.hmrc.economiccrimelevycalculator.base.SpecBase
@@ -26,7 +25,6 @@ import uk.gov.hmrc.economiccrimelevycalculator.services.CalculateLiabilityServic
 import uk.gov.hmrc.economiccrimelevycalculator.generators.CachedArbitraries._
 
 import scala.concurrent.Future
-import scala.math.BigDecimal.RoundingMode
 
 class CalculateLiabilityControllerSpec extends SpecBase {
 
@@ -37,13 +35,6 @@ class CalculateLiabilityControllerSpec extends SpecBase {
     fakeAuthorisedAction,
     mockCalculateLiabilityService
   )
-
-  val minAmountDue = 0
-  val maxAmountDue = 250000
-
-  implicit val arbAmountDue: Arbitrary[BigDecimal] = Arbitrary {
-    Gen.chooseNum[Double](minAmountDue, maxAmountDue).map(BigDecimal.apply(_).setScale(2, RoundingMode.DOWN))
-  }
 
   "calculateLiability" should {
     "return 200 OK the calculated liability JSON" in forAll {
