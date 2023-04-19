@@ -16,9 +16,18 @@
 
 package uk.gov.hmrc.economiccrimelevycalculator
 
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
+
+import scala.math.BigDecimal.RoundingMode
 
 trait EclTestData {
+
+  private val minAmountDue = 0
+  private val maxAmountDue = 250000
+
+  implicit val arbValidAmountDue: Arbitrary[BigDecimal] = Arbitrary {
+    Gen.chooseNum[Double](minAmountDue, maxAmountDue).map(BigDecimal.apply(_).setScale(2, RoundingMode.DOWN))
+  }
 
   def alphaNumericString: String = Gen.alphaNumStr.retryUntil(_.nonEmpty).sample.get
 

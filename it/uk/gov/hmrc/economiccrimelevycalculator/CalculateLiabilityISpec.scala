@@ -21,7 +21,7 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.economiccrimelevycalculator.base.ISpecBase
 import uk.gov.hmrc.economiccrimelevycalculator.controllers.routes
 import uk.gov.hmrc.economiccrimelevycalculator.models.Band._
-import uk.gov.hmrc.economiccrimelevycalculator.models.{BandRange, Bands, CalculateLiabilityRequest, CalculatedLiability}
+import uk.gov.hmrc.economiccrimelevycalculator.models.{BandRange, Bands, CalculateLiabilityRequest, CalculatedLiability, EclAmount}
 import uk.gov.hmrc.economiccrimelevycalculator.utils.ApportionmentUtils
 
 class CalculateLiabilityISpec extends ISpecBase {
@@ -47,15 +47,19 @@ class CalculateLiabilityISpec extends ISpecBase {
       val expectedAmountDue = 10000
 
       val expectedBands = Bands(
-        small = BandRange(0, 10200000),
-        medium = BandRange(10200000, 36000000),
-        large = BandRange(36000000, 1000000000),
-        veryLarge = BandRange(1000000000, Long.MaxValue)
+        small = BandRange(0, 10200000, 0),
+        medium = BandRange(10200000, 36000000, 10000),
+        large = BandRange(36000000, 1000000000, 36000),
+        veryLarge = BandRange(1000000000, Long.MaxValue, 250000)
       )
 
       status(result)        shouldBe OK
       contentAsJson(result) shouldBe Json.toJson(
-        CalculatedLiability(amountDue = expectedAmountDue, bands = expectedBands, calculatedBand = Medium)
+        CalculatedLiability(
+          amountDue = EclAmount(amount = expectedAmountDue),
+          bands = expectedBands,
+          calculatedBand = Medium
+        )
       )
     }
   }

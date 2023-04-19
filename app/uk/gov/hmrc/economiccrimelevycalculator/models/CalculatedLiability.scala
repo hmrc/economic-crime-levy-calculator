@@ -46,33 +46,55 @@ object Band {
   }
 }
 
-final case class BandRange(from: Long, to: Long) {
-  def apportion(relevantApLength: Int): BandRange = {
-    val a: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
+final case class EclAmount(amount: BigDecimal, apportioned: Boolean = false)
+
+object EclAmount {
+  implicit val format: OFormat[EclAmount] = Json.format[EclAmount]
+}
+
+final case class BandRange(from: Long, to: Long, amount: BigDecimal) {
+  def apportion(relevantApLength: Int, amlRegulatedActivityLength: Int): BandRange = {
+    val apportionBandRange: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
       _,
       days = relevantApLength,
       scale = 0,
       roundingMode = RoundingMode.UP
     )
 
+    val apportionBandAmount: BigDecimal => BigDecimal = ApportionmentUtils.apportionBasedOnDays(
+      _,
+      days = amlRegulatedActivityLength,
+      scale = 2,
+      roundingMode = RoundingMode.DOWN
+    )
+
     BandRange(
-      from = a(from).longValue,
-      to = a(to).longValue
+      from = apportionBandRange(from).longValue,
+      to = apportionBandRange(to).longValue,
+      amount = apportionBandAmount(amount)
     )
   }
+
+  def apportioned(defaultBandRange: BandRange): Boolean = from != defaultBandRange.from | to != defaultBandRange.to
 }
 
 object BandRange {
   implicit val format: OFormat[BandRange] = Json.format[BandRange]
 }
 
-final case class Bands(small: BandRange, medium: BandRange, large: BandRange, veryLarge: BandRange)
+final case class Bands(
+  small: BandRange,
+  medium: BandRange,
+  large: BandRange,
+  veryLarge: BandRange,
+  apportioned: Boolean = false
+)
 
 object Bands {
   implicit val format: OFormat[Bands] = Json.format[Bands]
 }
 
-final case class CalculatedLiability(amountDue: BigDecimal, bands: Bands, calculatedBand: Band)
+final case class CalculatedLiability(amountDue: EclAmount, bands: Bands, calculatedBand: Band)
 
 object CalculatedLiability {
   implicit val format: OFormat[CalculatedLiability] = Json.format[CalculatedLiability]

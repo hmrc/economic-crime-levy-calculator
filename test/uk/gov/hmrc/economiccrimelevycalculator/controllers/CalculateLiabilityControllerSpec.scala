@@ -17,16 +17,14 @@
 package uk.gov.hmrc.economiccrimelevycalculator.controllers
 
 import org.mockito.ArgumentMatchers.any
-import org.scalacheck.{Arbitrary, Gen}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import uk.gov.hmrc.economiccrimelevycalculator.base.SpecBase
-import uk.gov.hmrc.economiccrimelevycalculator.models.{CalculateLiabilityRequest, CalculatedLiability}
+import uk.gov.hmrc.economiccrimelevycalculator.models.{CalculateLiabilityRequest, CalculatedLiability, EclAmount}
 import uk.gov.hmrc.economiccrimelevycalculator.services.CalculateLiabilityService
 import uk.gov.hmrc.economiccrimelevycalculator.generators.CachedArbitraries._
 
 import scala.concurrent.Future
-import scala.math.BigDecimal.RoundingMode
 
 class CalculateLiabilityControllerSpec extends SpecBase {
 
@@ -38,13 +36,6 @@ class CalculateLiabilityControllerSpec extends SpecBase {
     mockCalculateLiabilityService
   )
 
-  val minAmountDue = 0
-  val maxAmountDue = 250000
-
-  implicit val arbAmountDue: Arbitrary[BigDecimal] = Arbitrary {
-    Gen.chooseNum[Double](minAmountDue, maxAmountDue).map(BigDecimal.apply(_).setScale(2, RoundingMode.DOWN))
-  }
-
   "calculateLiability" should {
     "return 200 OK the calculated liability JSON" in forAll {
       (
@@ -52,7 +43,7 @@ class CalculateLiabilityControllerSpec extends SpecBase {
         calculatedLiability: CalculatedLiability,
         amountDue: BigDecimal
       ) =>
-        val updatedWithValidAmountDue = calculatedLiability.copy(amountDue = amountDue)
+        val updatedWithValidAmountDue = calculatedLiability.copy(amountDue = EclAmount(amount = amountDue))
 
         when(mockCalculateLiabilityService.calculateLiability(any())).thenReturn(updatedWithValidAmountDue)
 
