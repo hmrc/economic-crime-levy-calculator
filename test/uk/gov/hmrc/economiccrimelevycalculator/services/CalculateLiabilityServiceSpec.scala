@@ -26,14 +26,14 @@ import uk.gov.hmrc.economiccrimelevycalculator.utils.ApportionmentUtils.yearInDa
 class CalculateLiabilityServiceSpec extends SpecBase {
 
   case class ExpectedBands(
-    expectedSmallTo: Long,
-    expectedMediumTo: Long,
-    expectedLargeTo: Long,
-    expectedMediumAmount: BigDecimal,
-    expectedLargeAmount: BigDecimal,
-    expectedVeryLargeAmount: BigDecimal,
+    smallTo: Long,
+    mediumTo: Long,
+    largeTo: Long,
+    mediumAmount: BigDecimal,
+    largeAmount: BigDecimal,
+    veryLargeAmount: BigDecimal,
     generatedRevenue: Long,
-    expectedBand: Band,
+    band: Band,
     apportioned: Boolean
   )
 
@@ -42,9 +42,9 @@ class CalculateLiabilityServiceSpec extends SpecBase {
       smallTo: Long,
       mediumTo: Long,
       largeTo: Long,
-      expectedMediumAmount: BigDecimal,
-      expectedLargeAmount: BigDecimal,
-      expectedVeryLargeAmount: BigDecimal,
+      mediumAmount: BigDecimal,
+      largeAmount: BigDecimal,
+      veryLargeAmount: BigDecimal,
       band: Band,
       apportioned: Boolean = false
     )(implicit
@@ -61,9 +61,9 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         smallTo,
         mediumTo,
         largeTo,
-        expectedMediumAmount,
-        expectedLargeAmount,
-        expectedVeryLargeAmount,
+        mediumAmount,
+        largeAmount,
+        veryLargeAmount,
         revenue,
         band,
         apportioned
@@ -228,26 +228,26 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         val expectedSmallBand: BandRange     =
           BandRange(
             from = appConfig.defaultBands.small.from,
-            to = expectedBands.expectedSmallTo,
+            to = expectedBands.smallTo,
             amount = sAmount
           )
         val expectedMediumBand: BandRange    =
           BandRange(
-            from = expectedBands.expectedSmallTo,
-            to = expectedBands.expectedMediumTo,
-            amount = expectedBands.expectedMediumAmount
+            from = expectedBands.smallTo,
+            to = expectedBands.mediumTo,
+            amount = expectedBands.mediumAmount
           )
         val expectedLargeBand: BandRange     =
           BandRange(
-            from = expectedBands.expectedMediumTo,
-            to = expectedBands.expectedLargeTo,
-            amount = expectedBands.expectedLargeAmount
+            from = expectedBands.mediumTo,
+            to = expectedBands.largeTo,
+            amount = expectedBands.largeAmount
           )
         val expectedVeryLargeBand: BandRange =
           BandRange(
-            from = expectedBands.expectedLargeTo,
+            from = expectedBands.largeTo,
             to = appConfig.defaultBands.veryLarge.to,
-            amount = expectedBands.expectedVeryLargeAmount
+            amount = expectedBands.veryLargeAmount
           )
 
         result shouldBe CalculatedLiability(
@@ -259,7 +259,7 @@ class CalculateLiabilityServiceSpec extends SpecBase {
             veryLarge = expectedVeryLargeBand,
             apportioned = expectedBands.apportioned
           ),
-          calculatedBand = expectedBands.expectedBand
+          calculatedBand = expectedBands.band
         )
     }
   }
