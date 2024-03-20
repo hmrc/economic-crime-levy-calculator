@@ -19,7 +19,7 @@ package uk.gov.hmrc.economiccrimelevycalculator.generators
 import com.danielasfregola.randomdatagenerator.RandomDataGenerator.derivedArbitrary
 import org.scalacheck.Arbitrary
 import org.scalacheck.derive.MkArbitrary
-import uk.gov.hmrc.economiccrimelevycalculator.models.{CalculateLiabilityRequest, CalculatedLiability}
+import uk.gov.hmrc.economiccrimelevycalculator.models.{Band, CalculateLiabilityRequest, CalculatedLiability}
 import uk.gov.hmrc.economiccrimelevycalculator.EclTestData
 
 object CachedArbitraries extends EclTestData {
@@ -28,5 +28,6 @@ object CachedArbitraries extends EclTestData {
 
   implicit lazy val arbCalculatedLiability: Arbitrary[CalculatedLiability]             = mkArb
   implicit lazy val arbCalculateLiabilityRequest: Arbitrary[CalculateLiabilityRequest] = mkArb
+  implicit lazy val arbBand: Arbitrary[Band]                                           = mkArb
 
 }
