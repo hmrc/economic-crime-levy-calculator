@@ -16,15 +16,28 @@
 
 package uk.gov.hmrc.economiccrimelevycalculator.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.economiccrimelevycalculator.base.SpecBase
 
-final case class CalculateLiabilityRequest(
-  amlRegulatedActivityLength: Int,
-  relevantApLength: Int,
-  ukRevenue: Long,
-  year: Int
-)
+class CalculateLiabilityRequestModelSpec extends SpecBase {
 
-object CalculateLiabilityRequest {
-  implicit val format: OFormat[CalculateLiabilityRequest] = Json.format[CalculateLiabilityRequest]
+  val json: JsObject = Json.obj(
+    "amlRegulatedActivityLength" -> 1,
+    "relevantApLength"           -> 2,
+    "ukRevenue"                  -> 200,
+    "year"                       -> 2000
+  )
+
+  val model: CalculateLiabilityRequest = CalculateLiabilityRequest(1, 2, 200, 2000)
+
+  "CalculateLiabilityRequestModel" should {
+
+    "read from JSON" in {
+      json.as[CalculateLiabilityRequest] shouldBe model
+    }
+
+    "write to JSON" in {
+      Json.toJson(model) shouldBe json
+    }
+  }
 }

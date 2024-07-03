@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.economiccrimelevycalculator.models.requests
+package uk.gov.hmrc.economiccrimelevycalculator
 
-import play.api.mvc.{Request, WrappedRequest}
+import play.api.mvc.Call
+import play.api.test.FakeRequest
+import uk.gov.hmrc.economiccrimelevycalculator.base.ISpecBase
 
-case class AuthorisedRequest[A](request: Request[A], internalId: String) extends WrappedRequest[A](request)
+class HealthEndpointIntegrationSpec extends ISpecBase {
+
+  "GET /ping/ping" should {
+    "respond with 200 status" in {
+      val result = callRoute(FakeRequest(Call("GET", "/ping/ping")))
+
+      status(result) shouldBe OK
+    }
+  }
+
+}
