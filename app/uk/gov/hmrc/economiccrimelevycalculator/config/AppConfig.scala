@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,37 +16,46 @@
 
 package uk.gov.hmrc.economiccrimelevycalculator.config
 
-import play.api.Configuration
+import com.typesafe.config.Config
+import play.twirl.api.TwirlHelperImports.twirlJavaCollectionToScala
 import uk.gov.hmrc.economiccrimelevycalculator.models.{BandRange, Bands}
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (configuration: Configuration) {
+class AppConfig @Inject() (configuration: Config) {
 
-  val appName: String = configuration.get[String]("appName")
+  val appName: String = configuration.getString("appName")
 
-  val defaultSmallAmount: Long     = configuration.get[Long]("bands.small.amount")
-  val defaultMediumAmount: Long    = configuration.get[Long]("bands.medium.amount")
-  val defaultLargeAmount: Long     = configuration.get[Long]("bands.large.amount")
-  val defaultVeryLargeAmount: Long = configuration.get[Long]("bands.veryLarge.amount")
+  def bandRangeLoader(path: String, year: Int): BandRange = {
+    val bandRangeList = configuration
+      .getConfigList(path)
+      .toList
+      .map { config =>
+        (
+          config.getIntList("years"),
+          BandRange(
+            config.getLong("from"),
+            config.getLong("to"),
+            config.getLong("amount")
+          )
+        )
+      }
 
-  private def bandRangeFromConfig(size: String): BandRange =
-    BandRange(
-      from = configuration.get[Long](s"bands.$size.from"),
-      to = configuration.get[Long](s"bands.$size.to"),
-      amount = configuration.get[Long](s"bands.$size.amount")
-    )
+    val latestExistingYear = bandRangeList.last._1.last
 
-  val defaultBands: Bands = {
-    val small     = bandRangeFromConfig("small")
-    val medium    = bandRangeFromConfig("medium")
-    val large     = bandRangeFromConfig("large")
-    val veryLarge = BandRange(
-      from = configuration.get[Long]("bands.veryLarge.from"),
-      to = Long.MaxValue,
-      amount = configuration.get[Long]("bands.veryLarge.amount")
-    )
+    bandRangeList.find(_._1.contains(year)) match {
+      case Some(bandRange)                   => bandRange._2
+      case None if year > latestExistingYear => bandRangeList.last._2
+      case _                                 => throw new IllegalArgumentException(s"The provided tax year $year is not supported")
+    }
+  }
+
+  def defaultBands(year: Int): Bands = {
+    val small     = bandRangeLoader("bands.small", year)
+    val medium    = bandRangeLoader("bands.medium", year)
+    val large     = bandRangeLoader("bands.large", year)
+    val veryLarge = bandRangeLoader("bands.veryLarge", year)
 
     Bands(
       small = small,
@@ -55,5 +64,4 @@ class AppConfig @Inject() (configuration: Configuration) {
       veryLarge = veryLarge
     )
   }
-
 }

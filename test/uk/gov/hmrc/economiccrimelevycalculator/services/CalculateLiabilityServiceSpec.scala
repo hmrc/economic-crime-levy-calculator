@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,8 @@ class CalculateLiabilityServiceSpec extends SpecBase {
     apportioned: Boolean
   )
 
+  val exampleYear = 2022
+
   object ExpectedBands {
     def apply(
       smallTo: Long,
@@ -46,15 +48,16 @@ class CalculateLiabilityServiceSpec extends SpecBase {
       largeAmount: BigDecimal,
       veryLargeAmount: BigDecimal,
       band: Band,
-      apportioned: Boolean = false
+      apportioned: Boolean = false,
+      year: Int = exampleYear
     )(implicit
       appConfig: AppConfig
     ): ExpectedBands = {
       val revenue = band match {
-        case Small     => Gen.chooseNum[Long](appConfig.defaultBands.small.from, smallTo - 1).sample.get
+        case Small     => Gen.chooseNum[Long](appConfig.defaultBands(year).small.from, smallTo - 1).sample.get
         case Medium    => Gen.chooseNum[Long](smallTo, mediumTo - 1).sample.get
         case Large     => Gen.chooseNum[Long](mediumTo, largeTo - 1).sample.get
-        case VeryLarge => Gen.chooseNum[Long](largeTo, appConfig.defaultBands.veryLarge.to).sample.get
+        case VeryLarge => Gen.chooseNum[Long](largeTo, appConfig.defaultBands(year).veryLarge.to).sample.get
       }
 
       ExpectedBands(
@@ -75,15 +78,15 @@ class CalculateLiabilityServiceSpec extends SpecBase {
 
   implicit val config: AppConfig = appConfig
 
-  val sTo: Long            = appConfig.defaultBands.small.to
-  val mTo: Long            = appConfig.defaultBands.medium.to
-  val lTo: Long            = appConfig.defaultBands.large.to
-  val sAmount: BigDecimal  = BigDecimal(appConfig.defaultSmallAmount)
-  val mAmount: BigDecimal  = BigDecimal(appConfig.defaultMediumAmount)
-  val lAmount: BigDecimal  = BigDecimal(appConfig.defaultLargeAmount)
-  val vlAmount: BigDecimal = BigDecimal(appConfig.defaultVeryLargeAmount)
+  val sTo: Long            = appConfig.defaultBands(exampleYear).small.to
+  val mTo: Long            = appConfig.defaultBands(exampleYear).medium.to
+  val lTo: Long            = appConfig.defaultBands(exampleYear).large.to
+  val sAmount: BigDecimal  = appConfig.defaultBands(exampleYear).small.amount
+  val mAmount: BigDecimal  = appConfig.defaultBands(exampleYear).medium.amount
+  val lAmount: BigDecimal  = appConfig.defaultBands(exampleYear).large.amount
+  val vlAmount: BigDecimal = appConfig.defaultBands(exampleYear).veryLarge.amount
 
-  "calculateLiability" should {
+  ".calculateLiability" should {
     "return the correctly calculated liability based on both the length of the relevant AP and AML regulated activity" in forAll(
       Table(
         (
@@ -122,7 +125,17 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         (
           450,
           yearInDays,
-          ExpectedBands(12575343L, 44383562L, 1232876713L, mAmount, lAmount, vlAmount, VeryLarge, apportioned = true),
+          ExpectedBands(
+            12575343L,
+            44383562L,
+            1232876713L,
+            mAmount,
+            lAmount,
+            vlAmount,
+            VeryLarge,
+            apportioned = true,
+            exampleYear
+          ),
           EclAmount(vlAmount)
         ),
         (
@@ -221,13 +234,14 @@ class CalculateLiabilityServiceSpec extends SpecBase {
           CalculateLiabilityRequest(
             amlRegulatedActivityLength = amlRegulatedActivityLength,
             relevantApLength = relevantApLength,
-            ukRevenue = expectedBands.generatedRevenue
+            ukRevenue = expectedBands.generatedRevenue,
+            exampleYear
           )
         )
 
         val expectedSmallBand: BandRange     =
           BandRange(
-            from = appConfig.defaultBands.small.from,
+            from = appConfig.defaultBands(exampleYear).small.from,
             to = expectedBands.smallTo,
             amount = sAmount
           )
@@ -246,7 +260,7 @@ class CalculateLiabilityServiceSpec extends SpecBase {
         val expectedVeryLargeBand: BandRange =
           BandRange(
             from = expectedBands.largeTo,
-            to = appConfig.defaultBands.veryLarge.to,
+            to = appConfig.defaultBands(exampleYear).veryLarge.to,
             amount = expectedBands.veryLargeAmount
           )
 
@@ -264,4 +278,67 @@ class CalculateLiabilityServiceSpec extends SpecBase {
     }
   }
 
+  ".determineAmountDue" should {
+
+    val defaultBands     = appConfig.defaultBands(exampleYear)
+    val apportionedBands = Bands(
+      BandRange(0, sTo, sAmount + 1),
+      BandRange(sTo, mTo, mAmount + 1),
+      BandRange(mTo, lTo, lAmount + 1),
+      BandRange(lTo, Long.MaxValue, vlAmount + 1)
+    )
+
+    "return the amount due based on the provided bands" when {
+
+      "the provided band amounts are the same as the default band amounts (no apportion)" when {
+
+        "the band is Small" in {
+          service.determineAmountDue(Small, defaultBands, exampleYear) shouldBe EclAmount(sAmount)
+        }
+
+        "the band is Medium" in {
+          service.determineAmountDue(Medium, defaultBands, exampleYear) shouldBe EclAmount(mAmount)
+        }
+
+        "the band is Large" in {
+          service.determineAmountDue(Large, defaultBands, exampleYear) shouldBe EclAmount(lAmount)
+        }
+
+        "the band is VeryLarge" in {
+          service.determineAmountDue(VeryLarge, defaultBands, exampleYear) shouldBe EclAmount(vlAmount)
+        }
+      }
+
+      "the provided band amounts vary from the default band amounts (apportioned)" when {
+
+        "the band is Small" in {
+          service.determineAmountDue(Small, apportionedBands, exampleYear) shouldBe EclAmount(
+            sAmount + 1,
+            apportioned = true
+          )
+        }
+
+        "the band is Medium" in {
+          service.determineAmountDue(Medium, apportionedBands, exampleYear) shouldBe EclAmount(
+            mAmount + 1,
+            apportioned = true
+          )
+        }
+
+        "the band is Large" in {
+          service.determineAmountDue(Large, apportionedBands, exampleYear) shouldBe EclAmount(
+            lAmount + 1,
+            apportioned = true
+          )
+        }
+
+        "the band is VeryLarge" in {
+          service.determineAmountDue(VeryLarge, apportionedBands, exampleYear) shouldBe EclAmount(
+            vlAmount + 1,
+            apportioned = true
+          )
+        }
+      }
+    }
+  }
 }

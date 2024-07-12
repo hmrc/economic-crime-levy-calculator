@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,24 +24,30 @@ import javax.inject.Inject
 
 class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
 
-  private def calculateBand(relevantApLength: Int, ukRevenue: Long, amlRegulatedActivityLength: Int): (Bands, Band) = {
-    val smallBand     = appConfig.defaultBands.small.apportion(relevantApLength, amlRegulatedActivityLength)
-    val mediumBand    = appConfig.defaultBands.medium.apportion(relevantApLength, amlRegulatedActivityLength)
-    val largeBand     = appConfig.defaultBands.large.apportion(relevantApLength, amlRegulatedActivityLength)
-    val veryLargeBand =
-      appConfig.defaultBands.veryLarge
-        .apportion(relevantApLength, amlRegulatedActivityLength)
-        .copy(to = appConfig.defaultBands.veryLarge.to)
+  private def calculateBand(
+    relevantApLength: Int,
+    ukRevenue: Long,
+    amlRegulatedActivityLength: Int,
+    year: Int
+  ): (Bands, Band) = {
+    val smallBand     = appConfig.defaultBands(year).small.apportion(relevantApLength, amlRegulatedActivityLength)
+    val mediumBand    = appConfig.defaultBands(year).medium.apportion(relevantApLength, amlRegulatedActivityLength)
+    val largeBand     = appConfig.defaultBands(year).large.apportion(relevantApLength, amlRegulatedActivityLength)
+    val veryLargeBand = appConfig
+      .defaultBands(year)
+      .veryLarge
+      .apportion(relevantApLength, amlRegulatedActivityLength)
+      .copy(to = appConfig.defaultBands(year).veryLarge.to)
 
     val bands: Bands = Bands(
       smallBand,
       mediumBand,
       largeBand,
       veryLargeBand,
-      apportioned = smallBand.apportioned(appConfig.defaultBands.small) | mediumBand.apportioned(
-        appConfig.defaultBands.medium
-      ) | largeBand.apportioned(appConfig.defaultBands.large) | veryLargeBand.apportioned(
-        appConfig.defaultBands.veryLarge
+      apportioned = smallBand.apportioned(appConfig.defaultBands(year).small) | mediumBand.apportioned(
+        appConfig.defaultBands(year).medium
+      ) | largeBand.apportioned(appConfig.defaultBands(year).large) | veryLargeBand.apportioned(
+        appConfig.defaultBands(year).veryLarge
       )
     )
 
@@ -56,22 +62,24 @@ class CalculateLiabilityService @Inject() (appConfig: AppConfig) {
     (bands, band)
   }
 
-  private def determineAmountDue(band: Band, bands: Bands): EclAmount =
+  private[services] def determineAmountDue(band: Band, bands: Bands, year: Int): EclAmount =
     band match {
-      case Small     => EclAmount(bands.small.amount, bands.small.amount != appConfig.defaultSmallAmount)
-      case Medium    => EclAmount(bands.medium.amount, bands.medium.amount != appConfig.defaultMediumAmount)
-      case Large     => EclAmount(bands.large.amount, bands.large.amount != appConfig.defaultLargeAmount)
-      case VeryLarge => EclAmount(bands.veryLarge.amount, bands.veryLarge.amount != appConfig.defaultVeryLargeAmount)
+      case Small     => EclAmount(bands.small.amount, bands.small.amount != appConfig.defaultBands(year).small.amount)
+      case Medium    => EclAmount(bands.medium.amount, bands.medium.amount != appConfig.defaultBands(year).medium.amount)
+      case Large     => EclAmount(bands.large.amount, bands.large.amount != appConfig.defaultBands(year).large.amount)
+      case VeryLarge =>
+        EclAmount(bands.veryLarge.amount, bands.veryLarge.amount != appConfig.defaultBands(year).veryLarge.amount)
     }
 
   def calculateLiability(calculateLiabilityRequest: CalculateLiabilityRequest): CalculatedLiability = {
     val (bands, band) = calculateBand(
       calculateLiabilityRequest.relevantApLength,
       calculateLiabilityRequest.ukRevenue,
-      calculateLiabilityRequest.amlRegulatedActivityLength
+      calculateLiabilityRequest.amlRegulatedActivityLength,
+      calculateLiabilityRequest.year
     )
 
-    val amountDue = determineAmountDue(band, bands)
+    val amountDue = determineAmountDue(band, bands, calculateLiabilityRequest.year)
 
     CalculatedLiability(amountDue, bands, band)
   }

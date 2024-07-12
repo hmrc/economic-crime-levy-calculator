@@ -1,20 +1,20 @@
 import play.sbt.routes.RoutesKeys
 import scoverage.ScoverageKeys
+import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "economic-crime-levy-calculator"
+
+ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / majorVersion := 0
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(inConfig(Test)(testSettings): _*)
-  .configs(IntegrationTest)
-  .settings(inConfig(IntegrationTest)(itSettings): _*)
-  .settings(majorVersion := 0)
+  .settings(inConfig(Test)(testSettings) *)
   .settings(inThisBuild(buildSettings))
-  .settings(scoverageSettings: _*)
-  .settings(scalaCompilerOptions: _*)
+  .settings(scoverageSettings *)
+  .settings(scalaCompilerOptions *)
   .settings(
-    scalaVersion := "2.13.12",
     name := appName,
     RoutesKeys.routesImport ++= Seq(
       "uk.gov.hmrc.economiccrimelevycalculator.models._",
@@ -33,7 +33,7 @@ lazy val buildSettings = Def.settings(
   useSuperShell := false
 )
 
-lazy val testSettings: Seq[Def.Setting[_]] = Seq(
+lazy val testSettings: Seq[Def.Setting[?]] = Seq(
   unmanagedSourceDirectories := Seq(
     baseDirectory.value / "test",
     baseDirectory.value / "test-common"
@@ -41,14 +41,17 @@ lazy val testSettings: Seq[Def.Setting[_]] = Seq(
   fork := true
 )
 
-lazy val itSettings: Seq[Def.Setting[_]] = Defaults.itSettings ++ Seq(
-  unmanagedSourceDirectories := Seq(
-    baseDirectory.value / "it",
-    baseDirectory.value / "test-common"
-  ),
-  parallelExecution := false,
-  fork := true
-)
+lazy val it = project
+  .enablePlugins(play.sbt.PlayScala)
+  .dependsOn(root % "test -> test")
+  .settings(
+    DefaultBuildSettings.itSettings(),
+    unmanagedSourceDirectories := Seq(
+      baseDirectory.value / "it",
+      baseDirectory.value / "test-common"
+    ),
+    fork := true
+  )
 
 val excludedScoveragePackages: Seq[String] = Seq(
   "<empty>",
@@ -62,7 +65,7 @@ val excludedScoveragePackages: Seq[String] = Seq(
   "testOnlyDoNotUseInAppConf.*"
 )
 
-val scoverageSettings: Seq[Setting[_]] = Seq(
+val scoverageSettings: Seq[Setting[?]] = Seq(
   ScoverageKeys.coverageExcludedFiles := excludedScoveragePackages.mkString(";"),
   ScoverageKeys.coverageMinimumStmtTotal := 90,
   ScoverageKeys.coverageFailOnMinimum := true,
