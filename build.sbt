@@ -4,7 +4,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "economic-crime-levy-calculator"
 
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 ThisBuild / majorVersion := 0
 
 lazy val root = (project in file("."))
