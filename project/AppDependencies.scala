@@ -9,7 +9,7 @@ object AppDependencies {
     "org.apache.commons" % "commons-lang3"    % "3.18.0",
     "ch.qos.logback"     % "logback-core"     % "1.5.27",
     "ch.qos.logback"     % "logback-classic"  % "1.5.27",
-    "org.lz4"            % "lz4-java"         % "1.10.3"
+    "at.yawk.lz4"        % "lz4-java"         % "1.10.3"
   )
 
   val test: Seq[ModuleID]    = Seq(
