@@ -5,7 +5,11 @@ object AppDependencies {
   private val hmrcBootstrapVersion = "10.5.0"
 
   val compile: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc" %% "bootstrap-backend-play-30" % hmrcBootstrapVersion
+    "uk.gov.hmrc" %% "bootstrap-backend-play-30" % hmrcBootstrapVersion exclude("org.apache.commons", "commons-lang3"),
+    "org.apache.commons" % "commons-lang3"    % "3.18.0",
+    "ch.qos.logback"     % "logback-core"     % "1.5.27",
+    "ch.qos.logback"     % "logback-classic"  % "1.5.27",
+    "org.lz4"            % "lz4-java"         % "1.10.3"
   )
 
   val test: Seq[ModuleID]    = Seq(
