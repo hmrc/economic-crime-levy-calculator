@@ -17,6 +17,7 @@
 package uk.gov.hmrc.economiccrimelevycalculator.controllers
 
 import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import uk.gov.hmrc.economiccrimelevycalculator.base.SpecBase
