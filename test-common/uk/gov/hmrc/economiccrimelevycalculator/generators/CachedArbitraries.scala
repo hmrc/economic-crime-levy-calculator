@@ -16,18 +16,55 @@
 
 package uk.gov.hmrc.economiccrimelevycalculator.generators
 
-import com.danielasfregola.randomdatagenerator.RandomDataGenerator.derivedArbitrary
-import org.scalacheck.Arbitrary
-import org.scalacheck.derive.MkArbitrary
-import uk.gov.hmrc.economiccrimelevycalculator.models.{Band, CalculateLiabilityRequest, CalculatedLiability}
+import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.economiccrimelevycalculator.EclTestData
+import uk.gov.hmrc.economiccrimelevycalculator.models._
 
 object CachedArbitraries extends EclTestData {
 
-  private def mkArb[T](implicit mkArb: MkArbitrary[T]): Arbitrary[T] = MkArbitrary[T].arbitrary
+  implicit lazy val arbBand: Arbitrary[Band] =
+    Arbitrary(Gen.oneOf(Band.Small, Band.Medium, Band.Large, Band.VeryLarge))
 
-  implicit lazy val arbCalculatedLiability: Arbitrary[CalculatedLiability]             = mkArb
-  implicit lazy val arbCalculateLiabilityRequest: Arbitrary[CalculateLiabilityRequest] = mkArb
-  implicit lazy val arbBand: Arbitrary[Band]                                           = mkArb
+  implicit lazy val arbBandRange: Arbitrary[BandRange] = Arbitrary {
+    for {
+      from   <- Gen.posNum[Long]
+      to     <- Gen.posNum[Long]
+      amount <- Gen.posNum[Double].map(BigDecimal.apply)
+    } yield BandRange(from, to, amount)
+  }
+
+  implicit lazy val arbEclAmount: Arbitrary[EclAmount] = Arbitrary {
+    for {
+      amount      <- Gen.posNum[Double].map(d => BigDecimal(d).setScale(2, scala.math.BigDecimal.RoundingMode.DOWN))
+      apportioned <- Gen.oneOf(true, false)
+    } yield EclAmount(amount, apportioned)
+  }
+
+  implicit lazy val arbBands: Arbitrary[Bands] = Arbitrary {
+    for {
+      small       <- arbBandRange.arbitrary
+      medium      <- arbBandRange.arbitrary
+      large       <- arbBandRange.arbitrary
+      veryLarge   <- arbBandRange.arbitrary
+      apportioned <- Gen.oneOf(true, false)
+    } yield Bands(small, medium, large, veryLarge, apportioned)
+  }
+
+  implicit lazy val arbCalculatedLiability: Arbitrary[CalculatedLiability] = Arbitrary {
+    for {
+      amountDue      <- arbEclAmount.arbitrary
+      bands          <- arbBands.arbitrary
+      calculatedBand <- arbBand.arbitrary
+    } yield CalculatedLiability(amountDue, bands, calculatedBand)
+  }
+
+  implicit lazy val arbCalculateLiabilityRequest: Arbitrary[CalculateLiabilityRequest] = Arbitrary {
+    for {
+      amlRegulatedActivityLength <- Gen.posNum[Int]
+      relevantApLength           <- Gen.posNum[Int]
+      ukRevenue                  <- Gen.posNum[Long]
+      year                       <- Gen.choose(2020, 2050)
+    } yield CalculateLiabilityRequest(amlRegulatedActivityLength, relevantApLength, ukRevenue, year)
+  }
 
 }

@@ -44,7 +44,7 @@ sbt run
 
 ### Integration tests
 
-> `sbt it:test`
+> `sbt it/test`
 
 ### All tests
 
