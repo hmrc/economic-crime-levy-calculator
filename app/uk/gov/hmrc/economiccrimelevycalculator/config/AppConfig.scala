@@ -27,6 +27,8 @@ class AppConfig @Inject() (configuration: Config) {
 
   val appName: String = configuration.getString("appName")
 
+  private val NewBandsStartYear = 2026
+
   def bandRangeLoader(path: String, year: Int): BandRange = {
     val bandRangeList = configuration
       .getConfigList(path)
@@ -52,16 +54,22 @@ class AppConfig @Inject() (configuration: Config) {
   }
 
   def defaultBands(year: Int): Bands = {
-    val small     = bandRangeLoader("bands.small", year)
-    val medium    = bandRangeLoader("bands.medium", year)
-    val large     = bandRangeLoader("bands.large", year)
-    val veryLarge = bandRangeLoader("bands.veryLarge", year)
-
-    Bands(
-      small = small,
-      medium = medium,
-      large = large,
-      veryLarge = veryLarge
-    )
+    val small = bandRangeLoader("bands.small", year)
+    if (year >= NewBandsStartYear) {
+      Bands(
+        small = small,
+        a = Some(bandRangeLoader("bands.a", year)),
+        b = Some(bandRangeLoader("bands.b", year)),
+        c = Some(bandRangeLoader("bands.c", year)),
+        d = Some(bandRangeLoader("bands.d", year))
+      )
+    } else {
+      Bands(
+        small = small,
+        medium = Some(bandRangeLoader("bands.medium", year)),
+        large = Some(bandRangeLoader("bands.large", year)),
+        veryLarge = Some(bandRangeLoader("bands.veryLarge", year))
+      )
+    }
   }
 }
